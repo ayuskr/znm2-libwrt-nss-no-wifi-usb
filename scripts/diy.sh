@@ -4,10 +4,16 @@ set -euo pipefail
 # This script only adds package sources and overlay files.
 # Do not force .config here; package symbols may not exist until feeds are installed.
 
-# PassWall official feeds
-sed -i '/openwrt-passwall-packages/d;/openwrt-passwall.git/d;/passwall_packages/d;/passwall_luci/d' feeds.conf.default
-sed -i '1isrc-git passwall_packages https://github.com/OpenWrt-Actions/openwrt-passwall-packages.git;main' feeds.conf.default
-sed -i '1isrc-git passwall_luci https://github.com/OpenWrt-Actions/openwrt-passwall.git;main' feeds.conf.default
+# GitHub Actions sometimes keeps extra URL rewrite rules from user configs; make cloning deterministic.
+git config --global --unset-all url.https://github.com/.insteadOf || true
+git config --global --unset-all url.git@github.com:.insteadOf || true
+
+# PassWall official public feeds.
+# Do NOT use OpenWrt-Actions/openwrt-passwall or OpenWrt-Actions/openwrt-passwall-packages:
+# those URLs are not the current public PassWall feeds and may trigger GitHub auth prompts.
+sed -i '/openwrt-passwall-packages/d;/openwrt-passwall.git/d;/passwall_packages/d;/passwall_luci/d;/src-git passwall /d' feeds.conf.default
+sed -i '1isrc-git passwall https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' feeds.conf.default
+sed -i '1isrc-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' feeds.conf.default
 
 # MosDNS feed. LiBwrt sometimes does not expose luci-app-mosdns after target switch,
 # so add a known standalone feed.
