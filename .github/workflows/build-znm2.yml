@@ -69,10 +69,10 @@ jobs:
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          ./scripts/feeds install -a -p passwall_packages || true
-          ./scripts/feeds install -a -p passwall_luci || true
-          ./scripts/feeds install -a -p mosdns_luci || true
-          ./scripts/feeds install luci-app-passwall luci-app-mosdns luci-app-lucky luci-app-gecoosac || true
+          ./scripts/feeds install -a -p passwall_packages
+          ./scripts/feeds install -a -p passwall
+          ./scripts/feeds install -a -p mosdns_luci
+          ./scripts/feeds install luci-app-passwall luci-app-mosdns luci-app-lucky luci-app-gecoosac
 
       - name: Apply config and strict no WiFi/USB check
         run: |
