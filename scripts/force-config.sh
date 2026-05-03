@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Remove duplicated old entries first, then append the final forced choices.
-# This runs after feeds install, so package symbols already exist.
-
 unset_config() {
   local sym="$1"
   sed -i "/^${sym}=y$/d;/^${sym}=m$/d;/^# ${sym} is not set$/d" .config
@@ -42,7 +39,7 @@ for sym in \
   set_config "$sym"
 done
 
-# NSS acceleration, keep normal main-router required parts
+# NSS acceleration
 for sym in \
   CONFIG_PACKAGE_kmod-qca-nss-dp \
   CONFIG_PACKAGE_kmod-qca-nss-drv \
@@ -77,8 +74,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Chinese language packages.
-# Keep only stable/common zh-cn packages.
+# Chinese language packages
 for sym in \
   CONFIG_PACKAGE_luci-i18n-base-zh-cn \
   CONFIG_PACKAGE_luci-i18n-firewall-zh-cn \
@@ -117,7 +113,6 @@ for sym in \
 done
 
 # Disable heavy / duplicate PassWall cores
-# Do NOT disable CONFIG_PACKAGE_microsocks here, because luci-app-microsocks needs it.
 for sym in \
   CONFIG_PACKAGE_haproxy \
   CONFIG_PACKAGE_naiveproxy \
@@ -133,9 +128,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Avoid broken packages from full jell feed.
-# tcping may be selected by luci-app-microsocks dependency before Makefile cleanup,
-# so we also remove it here.
+# Avoid broken tcping
 for sym in \
   CONFIG_PACKAGE_tcping \
   CONFIG_PACKAGE_luci-app-tcping; do
@@ -152,7 +145,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Strict no WiFi drivers / services / kernel wireless stack
+# Strict no WiFi
 for sym in \
   CONFIG_PACKAGE_ipq-wifi-zn_m2 \
   CONFIG_PACKAGE_ath11k-firmware-ipq6018 \
@@ -185,7 +178,6 @@ done
 
 # Do not unset libiwinfo/libiwinfo-data here.
 # LuCI may pull them as UI support libraries.
-# They do not include wireless drivers, firmware, wpad, hostapd, mac80211, or cfg80211.
 
 # Strict no USB
 for sym in \
@@ -212,8 +204,7 @@ done
 # First defconfig
 make defconfig
 
-# tcping may be re-selected by dependency.
-# Remove it again after defconfig.
+# Remove tcping again after dependency resolution
 unset_config CONFIG_PACKAGE_tcping
 unset_config CONFIG_PACKAGE_luci-app-tcping
 
@@ -232,8 +223,8 @@ grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewa
 echo "==== Check no tcping ===="
 if grep -E '^CONFIG_PACKAGE_(tcping|luci-app-tcping)=y' .config; then
   echo "ERROR: tcping packages still enabled"
-  echo "This usually means luci-app-microsocks still depends on tcping."
-  echo "Check package/custom/luci-app-microsocks/Makefile and remove tcping from DEPENDS."
+  echo "Something still selects tcping."
+  echo "Search with: grep -R \"tcping\" package feeds .config"
   exit 1
 fi
 
