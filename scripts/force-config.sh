@@ -64,7 +64,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Required LuCI/base/language/theme
+# Required LuCI / language / theme
 for sym in \
   CONFIG_PACKAGE_luci \
   CONFIG_PACKAGE_luci-ssl \
@@ -77,10 +77,13 @@ for sym in \
   CONFIG_PACKAGE_luci-i18n-commands-zh-cn \
   CONFIG_PACKAGE_luci-i18n-package-manager-zh-cn \
   CONFIG_PACKAGE_luci-theme-bootstrap \
-  CONFIG_PACKAGE_luci-theme-aurora \
-  CONFIG_PACKAGE_luci-app-aurora-config; do
+  CONFIG_PACKAGE_luci-theme-aurora; do
   set_config "$sym"
 done
+
+# Do not force luci-app-aurora-config.
+# CONFIG_PACKAGE_luci-app-aurora-config is not set
+unset_config CONFIG_PACKAGE_luci-app-aurora-config
 
 # Required plugins
 for sym in \
@@ -109,7 +112,7 @@ for sym in \
 done
 
 # Disable heavy / duplicate PassWall cores
-# 注意：这里不要关闭 CONFIG_PACKAGE_microsocks，因为你要 luci-app-microsocks。
+# Do NOT disable CONFIG_PACKAGE_microsocks here, because luci-app-microsocks needs it.
 for sym in \
   CONFIG_PACKAGE_haproxy \
   CONFIG_PACKAGE_naiveproxy \
@@ -122,6 +125,13 @@ for sym in \
   CONFIG_PACKAGE_tuic-client \
   CONFIG_PACKAGE_v2ray-core \
   CONFIG_PACKAGE_xray-plugin; do
+  unset_config "$sym"
+done
+
+# Avoid broken packages from full jell feed
+for sym in \
+  CONFIG_PACKAGE_tcping \
+  CONFIG_PACKAGE_luci-app-tcping; do
   unset_config "$sym"
 done
 
@@ -201,7 +211,13 @@ echo "==== Check LAN / DHCP ===="
 grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|kmod-dsa-qca8k|kmod-phy-qca83xx|kmod-gpio-button-hotplug)=y' .config || true
 
 echo "==== Check LuCI Chinese / Aurora / microsocks ===="
-grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_luci-app-aurora-config=y|^CONFIG_PACKAGE_microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks=y' .config || true
+grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks=y' .config || true
+
+echo "==== Check no tcping ===="
+if grep -E '^CONFIG_PACKAGE_(tcping|luci-app-tcping)=y' .config; then
+  echo "ERROR: tcping packages still enabled"
+  exit 1
+fi
 
 echo "==== Check no WiFi ===="
 if grep -E '^CONFIG_PACKAGE_(ipq-wifi|ath11k|kmod-ath11k|kmod-mac80211|kmod-cfg80211|wifi-scripts|wpad|hostapd|iw)=y' .config; then
