@@ -64,7 +64,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Required LuCI / language / theme
+# Required LuCI / theme
 for sym in \
   CONFIG_PACKAGE_luci \
   CONFIG_PACKAGE_luci-ssl \
@@ -72,17 +72,22 @@ for sym in \
   CONFIG_PACKAGE_luci-compat \
   CONFIG_PACKAGE_luci-lib-ipkg \
   CONFIG_PACKAGE_luci-app-firewall \
-  CONFIG_PACKAGE_luci-i18n-base-zh-cn \
-  CONFIG_PACKAGE_luci-i18n-firewall-zh-cn \
-  CONFIG_PACKAGE_luci-i18n-commands-zh-cn \
-  CONFIG_PACKAGE_luci-i18n-package-manager-zh-cn \
   CONFIG_PACKAGE_luci-theme-bootstrap \
   CONFIG_PACKAGE_luci-theme-aurora; do
   set_config "$sym"
 done
 
+# Chinese language packages.
+# Keep only stable/common zh-cn packages.
+for sym in \
+  CONFIG_PACKAGE_luci-i18n-base-zh-cn \
+  CONFIG_PACKAGE_luci-i18n-firewall-zh-cn \
+  CONFIG_PACKAGE_luci-i18n-passwall-zh-cn \
+  CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn; do
+  set_config "$sym"
+done
+
 # Do not force luci-app-aurora-config.
-# CONFIG_PACKAGE_luci-app-aurora-config is not set
 unset_config CONFIG_PACKAGE_luci-app-aurora-config
 
 # Required plugins
@@ -128,7 +133,9 @@ for sym in \
   unset_config "$sym"
 done
 
-# Avoid broken packages from full jell feed
+# Avoid broken packages from full jell feed.
+# tcping may be selected by luci-app-microsocks dependency before Makefile cleanup,
+# so we also remove it here.
 for sym in \
   CONFIG_PACKAGE_tcping \
   CONFIG_PACKAGE_luci-app-tcping; do
@@ -202,6 +209,15 @@ for sym in \
   unset_config "$sym"
 done
 
+# First defconfig
+make defconfig
+
+# tcping may be re-selected by dependency.
+# Remove it again after defconfig.
+unset_config CONFIG_PACKAGE_tcping
+unset_config CONFIG_PACKAGE_luci-app-tcping
+
+# Final defconfig
 make defconfig
 
 echo "==== Check target ===="
@@ -211,11 +227,13 @@ echo "==== Check LAN / DHCP ===="
 grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|kmod-dsa-qca8k|kmod-phy-qca83xx|kmod-gpio-button-hotplug)=y' .config || true
 
 echo "==== Check LuCI Chinese / Aurora / microsocks ===="
-grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks=y' .config || true
+grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks=y' .config || true
 
 echo "==== Check no tcping ===="
 if grep -E '^CONFIG_PACKAGE_(tcping|luci-app-tcping)=y' .config; then
   echo "ERROR: tcping packages still enabled"
+  echo "This usually means luci-app-microsocks still depends on tcping."
+  echo "Check package/custom/luci-app-microsocks/Makefile and remove tcping from DEPENDS."
   exit 1
 fi
 
