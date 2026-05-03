@@ -36,6 +36,21 @@ cd -
 cp -a /tmp/jell-microsocks/luci-app-microsocks package/custom/luci-app-microsocks
 rm -rf /tmp/jell-microsocks
 
+# Fix luci-app-microsocks dependencies.
+# Some versions depend on tcping. tcping fails to build on this target.
+# Remove tcping dependency from luci-app-microsocks Makefile.
+if [ -f package/custom/luci-app-microsocks/Makefile ]; then
+  sed -i \
+    -e 's/+tcping//g' \
+    -e 's/+PACKAGE_luci-app-microsocks:tcping//g' \
+    -e 's/ tcping//g' \
+    -e 's/tcping //g' \
+    package/custom/luci-app-microsocks/Makefile
+
+  echo "==== luci-app-microsocks Makefile after tcping cleanup ===="
+  grep -n "DEPENDS\|tcping" package/custom/luci-app-microsocks/Makefile || true
+fi
+
 # Lucky and GecoosAC
 rm -rf package/custom/luci-app-lucky package/custom/luci-app-gecoosac
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/custom/luci-app-lucky
