@@ -19,37 +19,136 @@ sed -i '1isrc-git mosdns_luci https://github.com/sbwml/luci-app-mosdns.git;v5' f
 
 # Important:
 # Do NOT add the whole kenzok8/jell feed.
-# The whole jell feed may trigger package/feeds/jell/tcping build failure.
+# Do NOT copy luci-app-microsocks from jell.
+# jell version may depend on tcping, and tcping fails to build on this target.
 sed -i '/kenzok8\/jell/d;/src-git jell/d' feeds.conf.default
 
 mkdir -p package/custom
 
-# Only copy luci-app-microsocks from kenzok8/jell.
-# Do not add whole jell feed.
-rm -rf package/custom/luci-app-microsocks /tmp/jell-microsocks
+# -------------------------------------------------------------------
+# Create a minimal local luci-app-microsocks package.
+# This version does NOT depend on tcping.
+# -------------------------------------------------------------------
+rm -rf package/custom/luci-app-microsocks
+mkdir -p package/custom/luci-app-microsocks/luasrc/controller
+mkdir -p package/custom/luci-app-microsocks/luasrc/model/cbi
+mkdir -p package/custom/luci-app-microsocks/root/etc/config
+mkdir -p package/custom/luci-app-microsocks/root/etc/init.d
 
-git clone --depth=1 --filter=blob:none --sparse https://github.com/kenzok8/jell.git /tmp/jell-microsocks
-cd /tmp/jell-microsocks
-git sparse-checkout set luci-app-microsocks
-cd -
+cat > package/custom/luci-app-microsocks/Makefile <<'EOF'
+include $(TOPDIR)/rules.mk
 
-cp -a /tmp/jell-microsocks/luci-app-microsocks package/custom/luci-app-microsocks
-rm -rf /tmp/jell-microsocks
+PKG_NAME:=luci-app-microsocks
+PKG_VERSION:=1.0
+PKG_RELEASE:=1
 
-# Fix luci-app-microsocks dependencies.
-# Some versions depend on tcping. tcping fails to build on this target.
-# Remove tcping dependency from luci-app-microsocks Makefile.
-if [ -f package/custom/luci-app-microsocks/Makefile ]; then
-  sed -i \
-    -e 's/+tcping//g' \
-    -e 's/+PACKAGE_luci-app-microsocks:tcping//g' \
-    -e 's/ tcping//g' \
-    -e 's/tcping //g' \
-    package/custom/luci-app-microsocks/Makefile
+LUCI_TITLE:=LuCI support for microsocks
+LUCI_DEPENDS:=+microsocks +luci-base +luci-compat
+LUCI_PKGARCH:=all
 
-  echo "==== luci-app-microsocks Makefile after tcping cleanup ===="
-  grep -n "DEPENDS\|tcping" package/custom/luci-app-microsocks/Makefile || true
-fi
+include $(TOPDIR)/feeds/luci/luci.mk
+
+# call BuildPackage - OpenWrt buildroot signature
+EOF
+
+cat > package/custom/luci-app-microsocks/luasrc/controller/microsocks.lua <<'EOF'
+module("luci.controller.microsocks", package.seeall)
+
+function index()
+    if not nixio.fs.access("/etc/config/microsocks") then
+        return
+    end
+
+    entry({"admin", "services", "microsocks"}, cbi("microsocks"), _("MicroSocks"), 60).dependent = true
+end
+EOF
+
+cat > package/custom/luci-app-microsocks/luasrc/model/cbi/microsocks.lua <<'EOF'
+local fs = require "nixio.fs"
+
+m = Map("microsocks", translate("MicroSocks"), translate("A tiny SOCKS5 server."))
+
+s = m:section(TypedSection, "microsocks", translate("Settings"))
+s.anonymous = true
+s.addremove = false
+
+o = s:option(Flag, "enabled", translate("Enable"))
+o.rmempty = false
+o.default = "0"
+
+o = s:option(Value, "bindaddr", translate("Listen address"))
+o.datatype = "ipaddr"
+o.placeholder = "0.0.0.0"
+o.default = "0.0.0.0"
+
+o = s:option(Value, "port", translate("Listen port"))
+o.datatype = "port"
+o.placeholder = "1080"
+o.default = "1080"
+
+o = s:option(Value, "user", translate("Username"))
+o.rmempty = true
+
+o = s:option(Value, "password", translate("Password"))
+o.password = true
+o.rmempty = true
+
+return m
+EOF
+
+cat > package/custom/luci-app-microsocks/root/etc/config/microsocks <<'EOF'
+config microsocks 'config'
+	option enabled '0'
+	option bindaddr '0.0.0.0'
+	option port '1080'
+	option user ''
+	option password ''
+EOF
+
+cat > package/custom/luci-app-microsocks/root/etc/init.d/microsocks <<'EOF'
+#!/bin/sh /etc/rc.common
+
+START=99
+USE_PROCD=1
+
+start_service() {
+	config_load microsocks
+
+	local enabled bindaddr port user password
+	config_get_bool enabled config enabled 0
+	[ "$enabled" -eq 1 ] || return 0
+
+	config_get bindaddr config bindaddr "0.0.0.0"
+	config_get port config port "1080"
+	config_get user config user ""
+	config_get password config password ""
+
+	procd_open_instance
+	procd_set_param command /usr/bin/microsocks -i "$bindaddr" -p "$port"
+
+	if [ -n "$user" ]; then
+		procd_append_param command -u "$user"
+	fi
+
+	if [ -n "$password" ]; then
+		procd_append_param command -P "$password"
+	fi
+
+	procd_set_param respawn
+	procd_close_instance
+}
+
+reload_service() {
+	stop
+	start
+}
+EOF
+
+chmod +x package/custom/luci-app-microsocks/root/etc/init.d/microsocks
+
+echo "==== local luci-app-microsocks created ===="
+grep -n "LUCI_DEPENDS" package/custom/luci-app-microsocks/Makefile || true
+grep -R "tcping" package/custom/luci-app-microsocks || true
 
 # Lucky and GecoosAC
 rm -rf package/custom/luci-app-lucky package/custom/luci-app-gecoosac
