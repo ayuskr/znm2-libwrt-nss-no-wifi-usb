@@ -56,6 +56,8 @@ uci -q set dhcp.lan.ignore='0'
 
 # 默认中文
 uci -q set luci.main.lang='zh_cn'
+uci -q set luci.languages.zh_cn='简体中文'
+uci -q set luci.languages.en='English'
 
 # 默认 Aurora 主题
 uci -q set luci.main.mediaurlbase='/luci-static/aurora'
