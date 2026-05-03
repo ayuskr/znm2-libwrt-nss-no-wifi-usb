@@ -42,12 +42,19 @@ set_config CONFIG_PACKAGE_luci-app-lucky
 set_config CONFIG_PACKAGE_lucky
 set_config CONFIG_PACKAGE_luci-app-gecoosac
 
-# Useful PassWall cores. If a core is unavailable in the current feed, defconfig will drop it.
+# Minimal PassWall cores: only keep Xray route
 for sym in \
   CONFIG_PACKAGE_chinadns-ng \
   CONFIG_PACKAGE_dns2socks \
-  CONFIG_PACKAGE_haproxy \
   CONFIG_PACKAGE_ipt2socks \
+  CONFIG_PACKAGE_v2ray-geodata \
+  CONFIG_PACKAGE_xray-core; do
+  set_config "$sym"
+done
+
+# Disable heavy / duplicate PassWall cores
+for sym in \
+  CONFIG_PACKAGE_haproxy \
   CONFIG_PACKAGE_microsocks \
   CONFIG_PACKAGE_naiveproxy \
   CONFIG_PACKAGE_shadowsocks-rust-sslocal \
@@ -58,10 +65,8 @@ for sym in \
   CONFIG_PACKAGE_trojan-plus \
   CONFIG_PACKAGE_tuic-client \
   CONFIG_PACKAGE_v2ray-core \
-  CONFIG_PACKAGE_v2ray-geodata \
-  CONFIG_PACKAGE_xray-core \
   CONFIG_PACKAGE_xray-plugin; do
-  set_config "$sym"
+  unset_config "$sym"
 done
 
 # Strict no WiFi drivers / services / kernel wireless stack.
