@@ -42,6 +42,18 @@ for sym in \
   CONFIG_PACKAGE_kmod-gpio-button-hotplug; do
   set_config "$sym"
 done
+
+for sym in \
+  CONFIG_PACKAGE_kmod-qca-nss-dp \
+  CONFIG_PACKAGE_kmod-qca-nss-drv \
+  CONFIG_PACKAGE_kmod-qca-nss-drv-bridge-mgr \
+  CONFIG_PACKAGE_kmod-qca-nss-drv-igs \
+  CONFIG_PACKAGE_kmod-qca-nss-drv-lag-mgr \
+  CONFIG_PACKAGE_kmod-qca-nss-drv-vlan-mgr \
+  CONFIG_PACKAGE_kmod-qca-nss-drv-pppoe \
+  CONFIG_PACKAGE_kmod-nss-ifb; do
+  set_config "$sym"
+done
 set_config CONFIG_PACKAGE_luci
 set_config CONFIG_PACKAGE_luci-ssl
 set_config CONFIG_PACKAGE_luci-base
