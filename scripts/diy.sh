@@ -26,14 +26,32 @@ rm -rf package/custom/luci-app-lucky package/custom/luci-app-gecoosac
 git clone --depth=1 https://github.com/gdy666/luci-app-lucky.git package/custom/luci-app-lucky
 git clone --depth=1 https://github.com/laipeng668/luci-app-gecoosac.git package/custom/luci-app-gecoosac
 
-# Force default LAN IP and Chinese LuCI language through files overlay.
+# Force default LAN IP / DHCP / Chinese LuCI
 mkdir -p files/etc/uci-defaults
+
 cat > files/etc/uci-defaults/99-custom-defaults <<'EOC'
 #!/bin/sh
-uci set network.lan.ipaddr='192.168.10.1'
-uci set luci.main.lang='zh_cn'
-uci commit network
-uci commit luci
+
+# 默认 LAN 地址
+uci -q set network.lan.ipaddr='192.168.10.1'
+uci -q set network.lan.netmask='255.255.255.0'
+
+# 确保 LAN DHCP 开启
+uci -q set dhcp.lan=dhcp
+uci -q set dhcp.lan.interface='lan'
+uci -q set dhcp.lan.start='100'
+uci -q set dhcp.lan.limit='150'
+uci -q set dhcp.lan.leasetime='12h'
+uci -q set dhcp.lan.ignore='0'
+
+# 中文 LuCI
+uci -q set luci.main.lang='zh_cn'
+
+uci -q commit network
+uci -q commit dhcp
+uci -q commit luci
+
 exit 0
 EOC
+
 chmod +x files/etc/uci-defaults/99-custom-defaults
