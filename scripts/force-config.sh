@@ -22,6 +22,26 @@ set_config CONFIG_TARGET_qualcommax_ipq60xx
 set_config CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_zn_m2
 
 # Required LuCI/base language/theme
+# Required base network / DHCP / LAN switch drivers
+for sym in \
+  CONFIG_PACKAGE_netifd \
+  CONFIG_PACKAGE_ubus \
+  CONFIG_PACKAGE_uci \
+  CONFIG_PACKAGE_dnsmasq-full \
+  CONFIG_PACKAGE_odhcp6c \
+  CONFIG_PACKAGE_odhcpd-ipv6only \
+  CONFIG_PACKAGE_firewall4 \
+  CONFIG_PACKAGE_nftables \
+  CONFIG_PACKAGE_kmod-nft-offload \
+  CONFIG_PACKAGE_ppp \
+  CONFIG_PACKAGE_ppp-mod-pppoe \
+  CONFIG_PACKAGE_kmod-dsa \
+  CONFIG_PACKAGE_kmod-dsa-qca8k \
+  CONFIG_PACKAGE_kmod-phy-qca83xx \
+  CONFIG_PACKAGE_kmod-phy-aquantia \
+  CONFIG_PACKAGE_kmod-gpio-button-hotplug; do
+  set_config "$sym"
+done
 set_config CONFIG_PACKAGE_luci
 set_config CONFIG_PACKAGE_luci-ssl
 set_config CONFIG_PACKAGE_luci-base
