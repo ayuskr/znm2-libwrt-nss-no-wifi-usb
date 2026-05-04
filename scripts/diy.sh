@@ -69,6 +69,10 @@ uci -q commit network
 uci -q commit dhcp
 uci -q commit luci
 
+# 清理 LuCI 缓存
+rm -rf /tmp/luci-indexcache
+rm -rf /tmp/luci-modulecache
+
 exit 0
 EOC
 
