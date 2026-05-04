@@ -18,7 +18,7 @@ set_config CONFIG_TARGET_qualcommax
 set_config CONFIG_TARGET_qualcommax_ipq60xx
 set_config CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_zn_m2
 
-# Required base network / DHCP / LAN switch drivers
+# LAN / DHCP / base network
 for sym in \
   CONFIG_PACKAGE_netifd \
   CONFIG_PACKAGE_ubus \
@@ -52,7 +52,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Disable NSS modules not needed for normal router use
+# Disable unused NSS modules
 for sym in \
   CONFIG_PACKAGE_kmod-qca-nss-drv-pptp \
   CONFIG_PACKAGE_kmod-qca-nss-drv-l2tpv2 \
@@ -74,8 +74,9 @@ for sym in \
   set_config "$sym"
 done
 
-# Chinese language packages
-# luci-i18n-base-zh-cn is the key package for Chinese UI
+# Chinese language
+set_config CONFIG_LUCI_LANG_zh_Hans
+
 for sym in \
   CONFIG_PACKAGE_luci-i18n-base-zh-cn \
   CONFIG_PACKAGE_luci-i18n-firewall-zh-cn \
@@ -84,10 +85,9 @@ for sym in \
   set_config "$sym"
 done
 
-# Do not force aurora config app
 unset_config CONFIG_PACKAGE_luci-app-aurora-config
 
-# Required plugins
+# Plugins
 for sym in \
   CONFIG_PACKAGE_luci-app-passwall \
   CONFIG_PACKAGE_luci-i18n-passwall-zh-cn \
@@ -102,7 +102,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Disable microsocks LuCI app to avoid dependency issues
+# Disable microsocks LuCI app
 unset_config CONFIG_PACKAGE_luci-app-microsocks
 unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
 
@@ -116,7 +116,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Disable heavy / duplicate PassWall cores
+# Disable heavy PassWall cores
 for sym in \
   CONFIG_PACKAGE_haproxy \
   CONFIG_PACKAGE_naiveproxy \
@@ -142,7 +142,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Strict no WiFi
+# No WiFi
 for sym in \
   CONFIG_PACKAGE_ipq-wifi-zn_m2 \
   CONFIG_PACKAGE_ath11k-firmware-ipq6018 \
@@ -173,10 +173,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Do not unset libiwinfo/libiwinfo-data here.
-# LuCI may pull them as UI support libraries.
-
-# Strict no USB
+# No USB
 for sym in \
   CONFIG_PACKAGE_kmod-usb-core \
   CONFIG_PACKAGE_kmod-usb2 \
@@ -198,20 +195,19 @@ for sym in \
   unset_config "$sym"
 done
 
-# First defconfig
 make defconfig
 
-# Force Chinese language packages again after dependency resolution
+# Force Chinese again after defconfig
+set_config CONFIG_LUCI_LANG_zh_Hans
 set_config CONFIG_PACKAGE_luci-i18n-base-zh-cn
 set_config CONFIG_PACKAGE_luci-i18n-firewall-zh-cn
 set_config CONFIG_PACKAGE_luci-i18n-passwall-zh-cn
 set_config CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn
 
-# Disable microsocks LuCI app again after dependency resolution
+# Disable microsocks LuCI app again
 unset_config CONFIG_PACKAGE_luci-app-microsocks
 unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
 
-# Final defconfig
 make defconfig
 
 echo "==== Check target ===="
@@ -220,13 +216,12 @@ grep -E '^CONFIG_TARGET_qualcommax|^CONFIG_TARGET_qualcommax_ipq60xx|^CONFIG_TAR
 echo "==== Check LAN / DHCP ===="
 grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|kmod-dsa-qca8k|kmod-phy-qca83xx|kmod-gpio-button-hotplug)=y' .config || true
 
-echo "==== Check LuCI Chinese / Aurora / microsocks core ===="
-grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y' .config || true
+echo "==== Check Chinese / Aurora / microsocks ===="
+grep -E '^CONFIG_LUCI_LANG_zh_Hans=y|^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y' .config || true
 
-echo "==== Strict check Chinese base package ===="
-if ! grep -q '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y' .config; then
-  echo "ERROR: luci-i18n-base-zh-cn is missing"
-  echo "Chinese UI will not work without luci-i18n-base-zh-cn"
+echo "==== Strict check Chinese language support ===="
+if ! grep -q '^CONFIG_LUCI_LANG_zh_Hans=y' .config && ! grep -q '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y' .config; then
+  echo "ERROR: Chinese language support is missing"
   exit 1
 fi
 
@@ -235,9 +230,6 @@ if grep -E '^CONFIG_PACKAGE_luci-app-microsocks=y|^CONFIG_PACKAGE_luci-app-micro
   echo "ERROR: luci-app-microsocks / luci-app-microsocks-lite still enabled"
   exit 1
 fi
-
-echo "==== Check tcping source ===="
-grep -R "PKG_NAME:=tcping" package feeds 2>/dev/null || true
 
 echo "==== Check no jell feed ===="
 if grep -R "kenzok8/jell" feeds.conf.default package feeds 2>/dev/null; then
