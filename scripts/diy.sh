@@ -18,7 +18,7 @@ sed -i '/sbwml\/luci-app-mosdns/d;/mosdns_luci/d' feeds.conf.default
 sed -i '1isrc-git mosdns_luci https://github.com/sbwml/luci-app-mosdns.git;v5' feeds.conf.default
 
 # Do NOT add the whole kenzok8/jell feed.
-# Do NOT add luci-app-microsocks, because it may select tcping.
+# Do NOT add luci-app-microsocks, because it may select tcping from jell or other feeds.
 sed -i '/kenzok8\/jell/d;/src-git jell/d' feeds.conf.default
 
 mkdir -p package/custom
