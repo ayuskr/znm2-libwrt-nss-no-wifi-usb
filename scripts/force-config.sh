@@ -75,6 +75,7 @@ for sym in \
 done
 
 # Chinese language packages
+# luci-i18n-base-zh-cn is the key package for Chinese UI
 for sym in \
   CONFIG_PACKAGE_luci-i18n-base-zh-cn \
   CONFIG_PACKAGE_luci-i18n-firewall-zh-cn \
@@ -200,6 +201,12 @@ done
 # First defconfig
 make defconfig
 
+# Force Chinese language packages again after dependency resolution
+set_config CONFIG_PACKAGE_luci-i18n-base-zh-cn
+set_config CONFIG_PACKAGE_luci-i18n-firewall-zh-cn
+set_config CONFIG_PACKAGE_luci-i18n-passwall-zh-cn
+set_config CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn
+
 # Disable microsocks LuCI app again after dependency resolution
 unset_config CONFIG_PACKAGE_luci-app-microsocks
 unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
@@ -215,6 +222,13 @@ grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|k
 
 echo "==== Check LuCI Chinese / Aurora / microsocks core ===="
 grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y' .config || true
+
+echo "==== Strict check Chinese base package ===="
+if ! grep -q '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y' .config; then
+  echo "ERROR: luci-i18n-base-zh-cn is missing"
+  echo "Chinese UI will not work without luci-i18n-base-zh-cn"
+  exit 1
+fi
 
 echo "==== Check no microsocks LuCI app ===="
 if grep -E '^CONFIG_PACKAGE_luci-app-microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks-lite=y' .config; then
