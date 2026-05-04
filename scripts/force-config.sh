@@ -101,7 +101,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Disable microsocks LuCI app to avoid tcping dependency
+# Disable microsocks LuCI app to avoid dependency issues
 unset_config CONFIG_PACKAGE_luci-app-microsocks
 unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
 
@@ -128,13 +128,6 @@ for sym in \
   CONFIG_PACKAGE_tuic-client \
   CONFIG_PACKAGE_v2ray-core \
   CONFIG_PACKAGE_xray-plugin; do
-  unset_config "$sym"
-done
-
-# Avoid broken tcping
-for sym in \
-  CONFIG_PACKAGE_tcping \
-  CONFIG_PACKAGE_luci-app-tcping; do
   unset_config "$sym"
 done
 
@@ -207,11 +200,9 @@ done
 # First defconfig
 make defconfig
 
-# Disable microsocks LuCI app and tcping again after dependency resolution
+# Disable microsocks LuCI app again after dependency resolution
 unset_config CONFIG_PACKAGE_luci-app-microsocks
 unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
-unset_config CONFIG_PACKAGE_tcping
-unset_config CONFIG_PACKAGE_luci-app-tcping
 
 # Final defconfig
 make defconfig
@@ -225,9 +216,18 @@ grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|k
 echo "==== Check LuCI Chinese / Aurora / microsocks core ===="
 grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y' .config || true
 
-echo "==== Check no microsocks LuCI app and no tcping ===="
-if grep -E '^CONFIG_PACKAGE_luci-app-microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks-lite=y|^CONFIG_PACKAGE_(tcping|luci-app-tcping)=y' .config; then
-  echo "ERROR: luci-app-microsocks / luci-app-microsocks-lite / tcping still enabled"
+echo "==== Check no microsocks LuCI app ===="
+if grep -E '^CONFIG_PACKAGE_luci-app-microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks-lite=y' .config; then
+  echo "ERROR: luci-app-microsocks / luci-app-microsocks-lite still enabled"
+  exit 1
+fi
+
+echo "==== Check tcping source ===="
+grep -R "PKG_NAME:=tcping" package feeds 2>/dev/null || true
+
+echo "==== Check no jell feed ===="
+if grep -R "kenzok8/jell" feeds.conf.default package feeds 2>/dev/null; then
+  echo "ERROR: jell feed still exists"
   exit 1
 fi
 
