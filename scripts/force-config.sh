@@ -61,7 +61,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Required LuCI / theme
+# LuCI / theme
 for sym in \
   CONFIG_PACKAGE_luci \
   CONFIG_PACKAGE_luci-ssl \
@@ -83,7 +83,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Do not force luci-app-aurora-config.
+# Do not force aurora config app
 unset_config CONFIG_PACKAGE_luci-app-aurora-config
 
 # Required plugins
@@ -97,12 +97,15 @@ for sym in \
   CONFIG_PACKAGE_luci-app-lucky \
   CONFIG_PACKAGE_lucky \
   CONFIG_PACKAGE_luci-app-gecoosac \
-  CONFIG_PACKAGE_microsocks \
-  CONFIG_PACKAGE_luci-app-microsocks; do
+  CONFIG_PACKAGE_microsocks; do
   set_config "$sym"
 done
 
-# Minimal PassWall cores: only keep Xray route
+# Disable microsocks LuCI app to avoid tcping dependency
+unset_config CONFIG_PACKAGE_luci-app-microsocks
+unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
+
+# Minimal PassWall cores
 for sym in \
   CONFIG_PACKAGE_chinadns-ng \
   CONFIG_PACKAGE_dns2socks \
@@ -204,7 +207,9 @@ done
 # First defconfig
 make defconfig
 
-# Remove tcping again after dependency resolution
+# Disable microsocks LuCI app and tcping again after dependency resolution
+unset_config CONFIG_PACKAGE_luci-app-microsocks
+unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
 unset_config CONFIG_PACKAGE_tcping
 unset_config CONFIG_PACKAGE_luci-app-tcping
 
@@ -217,14 +222,12 @@ grep -E '^CONFIG_TARGET_qualcommax|^CONFIG_TARGET_qualcommax_ipq60xx|^CONFIG_TAR
 echo "==== Check LAN / DHCP ===="
 grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|kmod-dsa-qca8k|kmod-phy-qca83xx|kmod-gpio-button-hotplug)=y' .config || true
 
-echo "==== Check LuCI Chinese / Aurora / microsocks ===="
-grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks=y' .config || true
+echo "==== Check LuCI Chinese / Aurora / microsocks core ===="
+grep -E '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y' .config || true
 
-echo "==== Check no tcping ===="
-if grep -E '^CONFIG_PACKAGE_(tcping|luci-app-tcping)=y' .config; then
-  echo "ERROR: tcping packages still enabled"
-  echo "Something still selects tcping."
-  echo "Search with: grep -R \"tcping\" package feeds .config"
+echo "==== Check no microsocks LuCI app and no tcping ===="
+if grep -E '^CONFIG_PACKAGE_luci-app-microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks-lite=y|^CONFIG_PACKAGE_(tcping|luci-app-tcping)=y' .config; then
+  echo "ERROR: luci-app-microsocks / luci-app-microsocks-lite / tcping still enabled"
   exit 1
 fi
 
