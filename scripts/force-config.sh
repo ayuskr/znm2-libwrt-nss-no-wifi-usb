@@ -13,13 +13,16 @@ set_config() {
   echo "${sym}=y" >> .config
 }
 
-# ZN M2 target
+echo "==== Force ZN M2 target ===="
 set_config CONFIG_TARGET_qualcommax
 set_config CONFIG_TARGET_qualcommax_ipq60xx
 set_config CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_zn_m2
 
-# LAN / DHCP / base network
+echo "==== Force base router packages ===="
 for sym in \
+  CONFIG_PACKAGE_base-files \
+  CONFIG_PACKAGE_busybox \
+  CONFIG_PACKAGE_procd \
   CONFIG_PACKAGE_netifd \
   CONFIG_PACKAGE_ubus \
   CONFIG_PACKAGE_uci \
@@ -31,6 +34,7 @@ for sym in \
   CONFIG_PACKAGE_kmod-nft-offload \
   CONFIG_PACKAGE_ppp \
   CONFIG_PACKAGE_ppp-mod-pppoe \
+  CONFIG_PACKAGE_ipv6helper \
   CONFIG_PACKAGE_kmod-dsa \
   CONFIG_PACKAGE_kmod-dsa-qca8k \
   CONFIG_PACKAGE_kmod-phy-qca83xx \
@@ -39,7 +43,24 @@ for sym in \
   set_config "$sym"
 done
 
-# NSS acceleration
+echo "==== Force SSH packages ===="
+set_config CONFIG_PACKAGE_dropbear
+set_config CONFIG_PACKAGE_openssh-sftp-server
+
+echo "==== Force basic tools ===="
+for sym in \
+  CONFIG_PACKAGE_bash \
+  CONFIG_PACKAGE_curl \
+  CONFIG_PACKAGE_ca-bundle \
+  CONFIG_PACKAGE_ca-certificates \
+  CONFIG_PACKAGE_irqbalance \
+  CONFIG_PACKAGE_htop \
+  CONFIG_PACKAGE_nano \
+  CONFIG_PACKAGE_wget-ssl; do
+  set_config "$sym"
+done
+
+echo "==== Force NSS acceleration ===="
 for sym in \
   CONFIG_PACKAGE_kmod-qca-nss-dp \
   CONFIG_PACKAGE_kmod-qca-nss-drv \
@@ -52,7 +73,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Disable unused NSS modules
+echo "==== Disable unused NSS modules ===="
 for sym in \
   CONFIG_PACKAGE_kmod-qca-nss-drv-pptp \
   CONFIG_PACKAGE_kmod-qca-nss-drv-l2tpv2 \
@@ -61,7 +82,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# LuCI / theme
+echo "==== Force LuCI / theme ===="
 for sym in \
   CONFIG_PACKAGE_luci \
   CONFIG_PACKAGE_luci-ssl \
@@ -74,7 +95,9 @@ for sym in \
   set_config "$sym"
 done
 
-# Chinese language
+unset_config CONFIG_PACKAGE_luci-app-aurora-config
+
+echo "==== Force Chinese language ===="
 set_config CONFIG_LUCI_LANG_zh_Hans
 
 for sym in \
@@ -85,9 +108,7 @@ for sym in \
   set_config "$sym"
 done
 
-unset_config CONFIG_PACKAGE_luci-app-aurora-config
-
-# Plugins
+echo "==== Force required plugins ===="
 for sym in \
   CONFIG_PACKAGE_luci-app-passwall \
   CONFIG_PACKAGE_luci-i18n-passwall-zh-cn \
@@ -98,15 +119,14 @@ for sym in \
   CONFIG_PACKAGE_luci-app-lucky \
   CONFIG_PACKAGE_lucky \
   CONFIG_PACKAGE_luci-app-gecoosac \
-  CONFIG_PACKAGE_microsocks; do
+  CONFIG_PACKAGE_microsocks \
+  CONFIG_PACKAGE_luci-app-microsocks; do
   set_config "$sym"
 done
 
-# Disable microsocks LuCI app
-unset_config CONFIG_PACKAGE_luci-app-microsocks
 unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
 
-# Minimal PassWall cores
+echo "==== Force minimal PassWall cores ===="
 for sym in \
   CONFIG_PACKAGE_chinadns-ng \
   CONFIG_PACKAGE_dns2socks \
@@ -116,7 +136,7 @@ for sym in \
   set_config "$sym"
 done
 
-# Disable heavy PassWall cores
+echo "==== Disable heavy PassWall cores ===="
 for sym in \
   CONFIG_PACKAGE_haproxy \
   CONFIG_PACKAGE_naiveproxy \
@@ -132,17 +152,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# Keep firmware smaller
-for sym in \
-  CONFIG_PACKAGE_htop \
-  CONFIG_PACKAGE_nano \
-  CONFIG_PACKAGE_wget-ssl \
-  CONFIG_PACKAGE_ca-certificates \
-  CONFIG_PACKAGE_openssh-sftp-server; do
-  unset_config "$sym"
-done
-
-# No WiFi
+echo "==== Remove WiFi completely ===="
 for sym in \
   CONFIG_PACKAGE_ipq-wifi-zn_m2 \
   CONFIG_PACKAGE_ath11k-firmware-ipq6018 \
@@ -173,7 +183,7 @@ for sym in \
   unset_config "$sym"
 done
 
-# No USB
+echo "==== Remove USB completely ===="
 for sym in \
   CONFIG_PACKAGE_kmod-usb-core \
   CONFIG_PACKAGE_kmod-usb2 \
@@ -195,45 +205,54 @@ for sym in \
   unset_config "$sym"
 done
 
+echo "==== First defconfig ===="
 make defconfig
 
-# Force Chinese again after defconfig
+echo "==== Force important options again after defconfig ===="
+set_config CONFIG_PACKAGE_dropbear
+set_config CONFIG_PACKAGE_openssh-sftp-server
+set_config CONFIG_PACKAGE_microsocks
+set_config CONFIG_PACKAGE_luci-app-microsocks
+unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
+
 set_config CONFIG_LUCI_LANG_zh_Hans
 set_config CONFIG_PACKAGE_luci-i18n-base-zh-cn
 set_config CONFIG_PACKAGE_luci-i18n-firewall-zh-cn
 set_config CONFIG_PACKAGE_luci-i18n-passwall-zh-cn
 set_config CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn
 
-# Disable microsocks LuCI app again
-unset_config CONFIG_PACKAGE_luci-app-microsocks
-unset_config CONFIG_PACKAGE_luci-app-microsocks-lite
-
+echo "==== Second defconfig ===="
 make defconfig
 
 echo "==== Check target ===="
 grep -E '^CONFIG_TARGET_qualcommax|^CONFIG_TARGET_qualcommax_ipq60xx|^CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_zn_m2' .config || true
 
-echo "==== Check LAN / DHCP ===="
-grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|kmod-dsa-qca8k|kmod-phy-qca83xx|kmod-gpio-button-hotplug)=y' .config || true
+echo "==== Check LAN / DHCP / SSH ===="
+grep -E '^CONFIG_PACKAGE_(dnsmasq-full|netifd|odhcp6c|odhcpd-ipv6only|kmod-dsa|kmod-dsa-qca8k|kmod-phy-qca83xx|kmod-gpio-button-hotplug|dropbear|openssh-sftp-server)=y' .config || true
 
 echo "==== Check Chinese / Aurora / microsocks ===="
-grep -E '^CONFIG_LUCI_LANG_zh_Hans=y|^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y' .config || true
+grep -E '^CONFIG_LUCI_LANG_zh_Hans=y|^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y|^CONFIG_PACKAGE_luci-i18n-mosdns-zh-cn=y|^CONFIG_PACKAGE_luci-theme-aurora=y|^CONFIG_PACKAGE_microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks=y' .config || true
+
+echo "==== Strict check SSH ===="
+if ! grep -q '^CONFIG_PACKAGE_dropbear=y' .config; then
+  echo "ERROR: dropbear is missing"
+  exit 1
+fi
+
+echo "==== Strict check microsocks LuCI ===="
+if ! grep -q '^CONFIG_PACKAGE_microsocks=y' .config; then
+  echo "ERROR: microsocks core is missing"
+  exit 1
+fi
+
+if ! grep -q '^CONFIG_PACKAGE_luci-app-microsocks=y' .config; then
+  echo "ERROR: luci-app-microsocks is missing"
+  exit 1
+fi
 
 echo "==== Strict check Chinese language support ===="
 if ! grep -q '^CONFIG_LUCI_LANG_zh_Hans=y' .config && ! grep -q '^CONFIG_PACKAGE_luci-i18n-base-zh-cn=y' .config; then
   echo "ERROR: Chinese language support is missing"
-  exit 1
-fi
-
-echo "==== Check no microsocks LuCI app ===="
-if grep -E '^CONFIG_PACKAGE_luci-app-microsocks=y|^CONFIG_PACKAGE_luci-app-microsocks-lite=y' .config; then
-  echo "ERROR: luci-app-microsocks / luci-app-microsocks-lite still enabled"
-  exit 1
-fi
-
-echo "==== Check no jell feed ===="
-if grep -R "kenzok8/jell" feeds.conf.default package feeds 2>/dev/null; then
-  echo "ERROR: jell feed still exists"
   exit 1
 fi
 
@@ -248,3 +267,5 @@ if grep -E '^CONFIG_PACKAGE_(kmod-usb|usbutils|automount|block-mount|luci-app-di
   echo "ERROR: USB packages still enabled"
   exit 1
 fi
+
+echo "==== Force config done ===="
